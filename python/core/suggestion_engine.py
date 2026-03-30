@@ -1,3 +1,9 @@
+import logging
+
+
+logger = logging.getLogger(__name__)
+
+
 def generate_suggestions(intent, data):
     """
     Generate context-aware suggestions based on MCP tool responses.
@@ -17,9 +23,20 @@ def generate_suggestions(intent, data):
     # Initialize empty suggestion list
     suggestions = []
 
+    # Guard invalid/empty inputs to avoid runtime errors.
+    if not intent:
+        logger.info("SUGGESTIONS intent=%r count=0", intent)
+        return []
+
     # 🔹 Case 1: Overdue loans → suggest recovery actions
     if intent == "get_overdue_loans":
+        if not isinstance(data, list):
+            logger.info("SUGGESTIONS intent=%s count=0", intent)
+            return []
+
         for loan in data:
+            if not isinstance(loan, dict):
+                continue
             loan_id = loan.get("id")
 
             # Suggest applying penalty
@@ -33,6 +50,10 @@ def generate_suggestions(intent, data):
 
     # 🔹 Case 2: Loan details → suggest actions based on loan status
     elif intent == "get_loan_details":
+        if not isinstance(data, dict):
+            logger.info("SUGGESTIONS intent=%s count=0", intent)
+            return []
+
         loan_id = data.get("loanId")
 
         # Normalize status for safe comparison
@@ -48,5 +69,16 @@ def generate_suggestions(intent, data):
             suggestions.append(f"Approve loan {loan_id}")
             suggestions.append(f"Reject loan {loan_id}")
 
-    # 🔹 Return final suggestions list
-    return suggestions
+    # Deduplicate while preserving first occurrence order.
+    deduped = []
+    seen = set()
+    for suggestion in suggestions:
+        if suggestion not in seen:
+            seen.add(suggestion)
+            deduped.append(suggestion)
+
+    # Keep output focused and deterministic.
+    final_suggestions = deduped[:3]
+
+    logger.info("SUGGESTIONS intent=%s count=%d", intent, len(final_suggestions))
+    return final_suggestions

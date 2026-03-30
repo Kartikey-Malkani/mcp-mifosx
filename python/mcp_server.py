@@ -103,6 +103,11 @@ def _resolve_client_id(name: str):
         return None
     return clients[0].get("entityId") or clients[0].get("id")
 
+
+def _format_structured_suggestions(suggestions: list[str]) -> list[dict]:
+    """Keep legacy list[str] suggestions while exposing a structured variant."""
+    return [{"action_text": item} for item in suggestions]
+
 # --- Register all MCP-native tools ---
 
 # --- CLIENTS & GROUPS ---
@@ -322,7 +327,8 @@ def get_loan(loanId: int) -> dict:
     # 🔹 Step 3: Return enhanced response
     return {
         "data": response,
-        "suggestions": suggestions
+        "suggestions": suggestions,
+        "suggestions_structured": _format_structured_suggestions(suggestions),
     }
 @mcp.tool()
 def get_repayment_sched(loanId: int) -> dict:
@@ -440,7 +446,8 @@ def get_overdue_loans_for_client(clientId: int) -> dict:
     # 🔹 Step 3: Return enhanced response
     return {
         "data": result,
-        "suggestions": suggestions
+        "suggestions": suggestions,
+        "suggestions_structured": _format_structured_suggestions(suggestions),
     }
 
 @mcp.tool()
